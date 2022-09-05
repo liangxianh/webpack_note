@@ -199,3 +199,52 @@ less 引入图片不用做任何设置即可（但是处理less的配置还是�
   background-size: 100% 100%;
 }
 ```
+
+5. css文件提取
+
+```
+/* 
+  loader: 1下载 2使用 
+  plugins: 1下载 2引入 3使用 
+*/
+// resolve用来拼接绝对路径的方法
+const { resolve } = require('path')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+
+module.exports = {
+  entry: './src/index.js',
+  output: {
+    filename: 'index.js',
+    // __dirname nodejs的变量，代表当前文件的目录绝对路径
+    path: resolve(__dirname, 'dist')
+  },
+  module: {
+    rules: [
+      // 提取css成单独的文件
+      {
+        test: /\.css$/,
+        use: [
+          MiniCssExtractPlugin.loader,
+          'css-loader'
+        ]
+      }
+    ]
+  },
+  plugins: [
+    // html-webpack-plugin 默认会创建一个空的html，自动引入打包输出的所有资源（js/css）
+    new HtmlWebpackPlugin({
+      // 复制./src/index.html文件，自动引入打包输出的所有资源（js/css
+      template: './src/index.html'
+    }),
+    new MiniCssExtractPlugin({
+      // 对输出的文件进行重命名
+      filename: 'css/built.css'
+    })
+  ],
+  // mode: 'production'
+  mode: 'development'
+}
+/* 
+ css 兼容性处理：postcss --> postcss-loader postcss-preset-env 在设置browserslist即可
+*/
+```
