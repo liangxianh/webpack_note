@@ -244,7 +244,128 @@ module.exports = {
   // mode: 'production'
   mode: 'development'
 }
-/* 
- css 兼容性处理：postcss --> postcss-loader postcss-preset-env 在设置browserslist即可
+```
+
+6. css 兼容性处理
+
+利用postcss --> postcss-loader postcss-preset-env 在设置browserslist即可
+
+7. css压缩
+
+利用plugin optimize-css-assets-webpack-plugin,直接require 在在plugin里面new即可
+
+8. js语法检查 eslint
+
+使用eslint-loader eslint,
+```
+module: {
+ rules: [
+      /* 
+        语法检测，eslint-loader eslint
+        注意：只检测自己的源代码，第三方的库是不用检查的
+        设置检查规则：
+        package.json中eslintConfig中设置 继承airbnb-base
+        "eslintConfig": {
+          "extends": "airbnb-base"
+        }
+        airbnb --> eslint-config-airbnb-base eslint eslint-plugin-import
+        若是在js中某行代码不想要被检测，可以使用eslint-disable-next-line
+        表示下一行eslint所有的规则都失效；
+      */
+      {
+        test: /.js$/,
+        exclude: /node-module/,
+        enforce： pre
+        loader: 'eslint-loader',
+        options: {
+          // 自动修复语法
+          fix: true
+        }
+      }
+ ]
+}
+```
+
+
+9. js兼容处理 eslint
+```
+      /* 
+        js兼容性处理：babel-loader @babel-core @babel/preset-env
+         1 @babel/preset-env 
+         问题：只能转换基本语法，如promise高级语法不能转换
+         2 全部js兼容处理 ---> 使用@babel/polyfill 在js文件里面直接引入即可import '@babel/polyfill'
+         问题：只要部分兼容处理时，会将所有的兼容性代码全部引入，体积太大了
+         3 需要做兼容性处理的就做：按需加载 ===》core-js
+           下载，配置
+      */
+     // 第一种配置
+     {
+      test: /.js$/,
+      exclude: /node-module/,
+      loader: "babel-loader",
+      options: {
+        // 预设：提示babel做怎样的兼容处理
+        presets: ['@babel/preset-env']
+      }
+    }
+    // 第二种配置直接在所需要的js中import即可
+    // 第三种配置（实际是将13结和，分别处理普通语法和按需处理高级语法）
+    {
+      test: /.js$/,
+      exclude: /node-module/,
+      loader: "babel-loader",
+      options: {
+        // 预设：提示babel做怎样的兼容处理
+        presets: [
+          '@babel/preset-env',
+          {
+            // 按需加载
+            useBuiltIns: usage,
+            // 指定corejs版本
+            corejs: {
+              version: 3
+            },
+            // 指定兼容性具体做到哪个版本
+            targets: {
+
+            }
+          }
+        ]
+      }
+      
+/*
+注意： 正常来讲一个文件只能被一个loader处理，当存在eslint与语法检查和兼容性处理时存在俩个loader；
+这种需要先后处理，可以使用enforce： pre来优先指定哪个loader执行，一般先执行eslint语法，在执行babel语法兼容处理
 */
 ```
+
+10. 压缩html和js
+
+```
+// 生产环境会自动压缩js代码
+  mode: 'production'
+  
+  html不需要做兼容处理 标签认识就认识了；但是可以进行压缩处理
+   new HtmlWebpackPlugin({
+      // 复制./src/index.html文件，自动引入打包输出的所有资源（js/css
+      template: './src/index.html',
+      // 压缩html代码
+      minify: {
+        // 移除空格
+        collapseWhitespace: true,
+        // 移除注释
+        removeComments: true
+      }
+    }),
+```
+
+11. 生产环境基本配置
+
+将以上内容整理一起就可以了
+
+12. 性能优化介绍
+
+
+
+
+
