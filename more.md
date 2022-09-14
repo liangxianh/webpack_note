@@ -6,7 +6,7 @@
 
 * 优化打包构建速度
 
-1 HMR
+1 HMR（开发环境，而生产环境利用缓存做相对的优化处理）
 ``` 
   HMR：hot module replacement 热模块替换
       作用： 一个模块发生变化，只会重新打包这一个模块，不会打包其他模块,在devServer下hot开启即可
@@ -76,3 +76,51 @@ source-map：一种提供源代码与构建代码映射的技术
 
 * 优化打包构建速度
 * 优化代码运行性能
+
+3 vue框架在底层完成了2中js文件配置的内容，顾在devServer下hot开启即可；
+
+4 利用oneof优化
+
+```
+module: {
+  // rules里面有很多loader规则，每个文件都会走下面所有的规则去匹配，可以利用oneof来优化只执行一个loader
+  // 缺点：不能同时执行两个loader处理同一种类型的文件；解决方法：可以放到外面一个
+  rules: [
+    {
+      test: /.js$/,
+      exclude: /node-module/,
+      loader: 'eslint-loader',
+      options: {
+        // 自动修复语法
+        fix: true
+      }
+    },
+    {
+      oneof: [
+        {
+          test: /.js$/,
+          exclude: /node-module/,
+          loader: "babel-loader",
+          options: {
+            // 预设：提示babel做怎样的兼容处理
+            presets: ['@babel/preset-env']
+          }
+        },
+        {
+          test: /\.css$/,
+          use: [
+            MiniCssExtractPlugin.loader,
+            'css-loader'
+          ]
+        },
+      ],
+    }
+  ]
+}
+```
+
+
+      
+      
+      
+      
