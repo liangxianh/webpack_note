@@ -8,7 +8,7 @@
 
 1 HMR（开发环境，而生产环境利用缓存做相对的优化处理）
 ``` 
-  HMR：hot module replacement 热模块替换
+  HMR：hot module replacement 热模块替换是基于devserver的
       作用： 一个模块发生变化，只会重新打包这一个模块，不会打包其他模块,在devServer下hot开启即可
       devServer: {
         // 开启hmr功能
@@ -86,6 +86,18 @@ module: {
   // rules里面有很多loader规则，每个文件都会走下面所有的规则去匹配，可以利用oneof来优化只执行一个loader
   // 缺点：不能同时执行两个loader处理同一种类型的文件；解决方法：可以放到外面一个
   rules: [
+     /* 
+        语法检测，eslint-loader eslint
+        注意：只检测自己的源代码，第三方的库是不用检查的
+        设置检查规则：
+        package.json中eslintConfig中设置 继承airbnb-base
+        "eslintConfig": {
+          "extends": "airbnb-base"
+        }
+        airbnb --> eslint-config-airbnb-base eslint eslint-plugin-import
+        若是在js中某行代码不想要被检测，可以使用eslint-disable-next-line
+        表示下一行eslint所有的规则都失效；
+      */
     {
       test: /.js$/,
       exclude: /node-module/,
@@ -97,13 +109,37 @@ module: {
     },
     {
       oneof: [
+        /* 
+          js兼容性处理：babel-loader @babel-core @babel/preset-env
+           1 @babel/preset-env 
+           问题：只能转换基本语法，如promise高级语法不能转换
+           2 全部js兼容处理 ---> 使用@babel/polyfill 在js文件里面直接引入即可import '@babel/polyfill'
+           问题：只要部分兼容处理时，会将所有的兼容性代码全部引入，体积太大了
+           3 需要做兼容性处理的就做：按需加载 ===》core-js
+             下载，配置
+        */
         {
           test: /.js$/,
           exclude: /node-module/,
           loader: "babel-loader",
           options: {
             // 预设：提示babel做怎样的兼容处理
-            presets: ['@babel/preset-env']
+            presets: [
+              '@babel/preset-env',
+              {
+                // 按需加载
+                useBuiltIns: usage,
+                // 指定corejs版本
+                corejs: {
+                  version: 3
+                },
+                // 指定兼容性具体做到哪个版本
+                targets: {
+                  chrome: '60',
+                  firefox: '50'
+                }
+              }
+            ]
           }
         },
         {
@@ -119,8 +155,54 @@ module: {
 }
 ```
 
+5. 缓存
 
-      
+  > babel缓存 （针对js兼容性的缓存）
+    cacheDirectory: true
+    --> 让第二次打包构建速度更快
+    node代码可以设置max-age来确定缓存的时间
+
+    为了避免有内容更新，而不能及时更新到远程，可以使用hash处理，hash有以下三种形式
+
+  > 文件资源缓存
+    * hash：每次webpack构建时会生成一个唯一的hash值
+        问题：因为js和css同时使用一个hash值，如果重新打包，会导致所有缓存失效（可我却只改动了一个文件）
+    * chunkhash：更具chunk生成的hash值；如果打包来源于同一个chunk，那么hash值就一样
+        问题：js和css的hash值还是一样
+          因为css是在js中被引入的所以同属于一个chunk
+    * contenthash：根据文件的内容生成hash值，不同文件的hash值一锭不一样；        
+      -->让代码上线运行缓存更好使用
+```
+        {
+          test: /.js$/,
+          exclude: /node-module/,
+          loader: "babel-loader",
+          options: {
+            // 预设：提示babel做怎样的兼容处理
+            presets: [
+              '@babel/preset-env',
+              {
+                // 按需加载
+                useBuiltIns: usage,
+                // 指定corejs版本
+                corejs: {
+                  version: 3
+                },
+                // 指定兼容性具体做到哪个版本
+                targets: {
+                  chrome: '60',
+                  firefox: '50'
+                }
+              }
+            ],
+            // 开启babel缓存
+            // 第二次构建时，会读取之前的
+            cacheDirectory: true
+          }
+        },
+
+```
+
       
       
       
