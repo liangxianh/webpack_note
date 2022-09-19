@@ -158,6 +158,8 @@ module: {
 5. 缓存
 
   > babel缓存 （针对js兼容性的缓存）
+
+
     cacheDirectory: true
     --> 让第二次打包构建速度更快
     node代码可以设置max-age来确定缓存的时间
@@ -165,14 +167,31 @@ module: {
     为了避免有内容更新，而不能及时更新到远程，可以使用hash处理，hash有以下三种形式
 
   > 文件资源缓存
+
+
     * hash：每次webpack构建时会生成一个唯一的hash值
+    
         问题：因为js和css同时使用一个hash值，如果重新打包，会导致所有缓存失效（可我却只改动了一个文件）
+        
     * chunkhash：更具chunk生成的hash值；如果打包来源于同一个chunk，那么hash值就一样
+    
         问题：js和css的hash值还是一样
           因为css是在js中被引入的所以同属于一个chunk
-    * contenthash：根据文件的内容生成hash值，不同文件的hash值一锭不一样；        
+          
+    * contenthash：根据文件的内容生成hash值，不同文件的hash值一定不一样；        
       -->让代码上线运行缓存更好使用
 ```
+       output: {
+          // filename: 'index.js',
+          // filename: 'js/index.[hash:10].js',
+          // filename: 'js/index.[chunkhash:10].js',
+          filename: 'js/index.[contenthash:10].js',
+          // __dirname nodejs的变量，代表当前文件的目录绝对路径
+          path: resolve(__dirname, 'dist')
+        },
+
+        ***
+        
         {
           test: /.js$/,
           exclude: /node-module/,
@@ -203,6 +222,24 @@ module: {
 
 ```
 
-      
+6. tree shaking去除无用代码
+
+```
+/* 
+    tree shaking（树摇）去除无用代码(可能是js/css代码)
+    （比如，js定义的常用方法，只引入部分的 ，就只打包部分的）
+    前提： 1 必须使用es6模块化； 2 开启production环境；
+    作用：减少代码体积
+    
+    不同版本会有差异，有的会将css/@babel/polyfill（副作用）文件干掉
+    在package.json中配置
+    "sideEffects": false 所有代码都没有副作用（都可以进行tree shaking）
+    问题： 可能会把css/@babel/polyfill（副作用）文件干掉
+    "sideEffects": ["*.css"， ] 
+*/
+
+```
+7. 
+
       
       
