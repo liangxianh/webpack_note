@@ -239,7 +239,73 @@ module: {
 */
 
 ```
-7. 
+7. code-split 
+
+一般采用单入口，加spilt将文件打包成多个；（node-modules里面的文件，非node_modules里面的文件可以利用动态引入的方式这样也会进行单独的打包）
+
+```
+const { resolve } = require('path')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const { CleanWebpackPlugin } = require('clean-webpack-plugin')
+
+module.exports = {
+  // 单入口----》单页面 单入口
+  entry: './src/js/main.js',
+  // 多入口：有一个入口，最终输出就有一个bundle
+  // entry: {
+  //   main: './src/js/main.js',
+  //   test: './src/js/test.js'
+  // },
+  output: {
+    // filename: 'index.js',
+    filename: 'js/[name].[contenthash:10].js',
+    // __dirname nodejs的变量，代表当前文件的目录绝对路径
+    path: resolve(__dirname, 'dist')
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './src/index.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true
+      }
+    }),
+    new CleanWebpackPlugin(),
+  ],
+  /* 
+    可以将node—modules中的代码单独打包一个chunk，最终输出；
+    自动分析多入口chunk中，有没有公共文件；如果有就会打包成单独的一个chunk;不会加载打包重复的东西
+  */
+  optimization: {
+    splitChunks: {
+      chunks: 'all',
+    }
+  },
+  // 生产环境会自动压缩js代码
+  mode: 'production'
+  // mode: 'development'
+}
+```
+```
+// 通过js代码，让某个文件被单独打包成一个chunk
+// 这样的话每次打包名字都会变话，为了不变话可以引入时加入注释
+// import('./test')
+import(/* webpackChunkName: 'test' */'./test').then(({mu1, count}) => {
+  console.log(mu1(4,3))
+}).catch(() => {
+  console.log('文件加载失败～')
+})
+/* 
+打包的结果
+asset js/main.99e3b96198.js 2.58 KiB [emitted] [immutable] [minimized] (name: main)
+asset index.html 332 bytes [emitted]
+asset js/411.8bc86be1b1.js 179 bytes [emitted] [immutable] [minimized]
+
+asset js/main.9bc38fe31a.js 2.58 KiB [emitted] [immutable] [minimized] (name: main)
+asset index.html 332 bytes [emitted]
+asset js/test.fef1ad6003.js 178 bytes [emitted] [immutable] [minimized] (name: test)
+*/
+```
 
       
       
