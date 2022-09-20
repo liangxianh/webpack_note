@@ -307,5 +307,98 @@ asset js/test.fef1ad6003.js 178 bytes [emitted] [immutable] [minimized] (name: t
 */
 ```
 
-      
+8. 懒加载与预加载
+
+js文件的懒加载，而不是图片的懒加载
+```
+document.getElementById('btn').onclick = function() {
+  // 懒加载～ 需要代码codesplit
+  import(/* webpackChunkName: 'test' */'./test').then(({ mu1 }) => {
+    console.log(mu1(4, 2))
+  })
+  // 预加载prefetch：会在使用之前，提前加载js文件（有很多兼容性问题使用时慎之又慎）
+  // 正常加载可以认为是并行加载（同一时间加载多个文件），预加载prefetch等其他资源加载完毕，等浏览器空闲了，在偷偷加载资源
+  import(/* webpackChunkName: 'test', webpackPrefetch: true */'./test').then(({ mu1 }) => {
+    console.log(mu1(4, 2))
+  })
+}
+```
+
+9. PWA：利用serviceworker+cache 实现的渐进式网络开发应用程序（离线可访问）；比如掘金无pwa 淘宝使用了pwa调整为无网模式淘宝可以继续访问
+通过workbox库来实现 -- workbox-webpack-plugin
+
+```
+配置文件webpack.config.js 的plugin内
+const WorkboxWebpackPlugin = require('workbox-webpack-plugin')
+module.exports = {
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './src/index.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true
+      }
+    }),
+    new CleanWebpackPlugin(),
+    // pwa
+    new WorkboxWebpackPlugin.GenerateSW({
+      /* 
+        1 帮助serviceworker快速启动
+        2 删除旧的serviceworker
+
+        生成一个serviceworker配置文件～
+      */
+      clientsClaim: true,
+      skipWaiting: true
+    })
+  ],
+ }
+
+在入口文件中引入注册
+/* 
+pwa过程中会遇到两个问题：
+1 eslint不认识 window navigator等全局变量
+  解决：需要修改eslint配置
+  "env": {
+    "browser": true  // 支持浏览器全局变量
+  }
+2 sw代码必须运行在服务器上
+  ---> nodejs
+  ---> 
+     npm i serve -g
+     serve -s dist 启动服务器，将dist目录下所有资源作为静态资源暴露出去
+*/
+// 在入口文件中注册serviceworker
+// 处理兼容性问题
+if('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').then(() => {
+      console.log('sw注册成功了～')
+    }).catch(() => {
+      console.log('sw注册失败了～')
+    })
+  })
+}
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       
