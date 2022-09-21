@@ -382,12 +382,150 @@ if('serviceWorker' in navigator) {
 
 ```
 
+10 多进程打包thread-loader与babel-loader配合使用
+
+多进程打包，npm install -D thread-loader  ，通常js打包都是单进程的，
+
+```
+  module: {
+    rules: [
+      {
+        test: /\.js$/,
+        exclude: /node_modlues/,
+        use: [
+          /* 
+            开启多进程打包thread-loader 是给babel-loader用的
+            进程启动大概为600ms，进程通信也有开销，只有工作消耗时间比较长（js代码特别多），才需要多进程打包
+          */
+          // 'thread-loader', 默认是cpu核数-1的进程，也可以通过如下设置调整
+          {
+            loader: 'thread-loader',
+            options: {
+              workers: 2, // 进程2个
+            }
+          },
+          {
+            loader: 'babel-loader',
+            options: {
+              presets: [
+                '@babel/preset-env',
+                {
+                  // 按需加载
+                  useBuiltIns: usage,
+                  // 指定corejs版本
+                  corejs: {
+                    version: 3
+                  },
+                  // 指定兼容性具体做到哪个版本
+                  targets: {
+                    chrome: '60',
+                    firefox: '50'
+                  }
+                }
+              ],
+            }
+          }
+        ]
+      }
+    ],
+  },
+```
+
+11 externals 防止将某些包打包到最终输出的banel中,但是需要手动引入包到html中
+```
+  mode: 'production',
+  // mode: 'development'
+  /* 
+    <script src="https://cdn.bootcss.com/jquery/1.12.4/jquery.min.js"></script>
+    用处：比如开发时有些包需要通过cdn引入，就需要在此处设置拒绝打包，然后在html中通过script标签的形式将其引入
+  */
+  externals: {
+    // 拒绝jQuery被打包进来
+    jquery: 'jQuery'
+  }
+```
+
+12 dll 动态链接库，类似externals 会指定哪些库时不参与打包的，
+    dll 会对某些库（如jquery，elementui，vue，react）进行单独的打包，将多个库打包成一个chunk
+    意义：将库可以拆开来打包成不同的chunk
+流程：
+* 1 定义webpack.dll.js对某些包单独的进行打包并生成映射文件，作用将来不需要重复打包（在manifest里面会有对应）
+* 2 在主congfig中告知哪些包不需要重新打包了（查看manifest.json文件）（虽然主文件里引入了jquery）
+* 3 利用add-asset-html-webpack-plugin插件自动引入（当然也可以手动引入）
+
+只要jqury不变 webpack.dll.js只运行一次即可，反复运行congfig文件即可；这样不会将第三方库进行重复打包了；
+
+```
+分两个文件 webpack.dll.js
+const { resolve } = require('path')
+const webpack = require('webpack')
+/* 
+    dll 动态链接库，类似externals 会指定哪些库时不参与打包的
+    dll 会对某些库（如jquery，elementui，vue，react）进行单独的打包，将多个库打包成一个chunk
+    意义：将库可以拆开来打包成不同的chunk
+    当运行webpack时，默认查找webpack.config.js文件，
+    需要运行webpack.dll.js   webpack --config webpack.dll.js
+*/
+module.exports = {
+  entry: {
+    // 最终打包生成的【name】--> jquery
+    // ['jquery'] --> 要打包的库时jquery
+    jquery: ['jquery']
+  },
+  output: {
+    filename: '[name].js', // 打包的库名称
+    path: resolve(__dirname, 'dll'),  //路径
+    library: '[name]_[hash]', // 打包的库里面向外暴露出去的内容叫什么名字
+  },
+  plugins: [
+    // 建立依赖关系，告诉webpack将来在打包时不要在打包jquery了
+    // 打包生成一个manifest.json ---》 提供和jquery映射
+    new webpack.DllPlugin({
+      name: '[name]_[hash]', // 映射库的暴露的内容名称
+      path: resolve(__dirname, 'dll/manifest.json') // 输出文件路径
+    }),
+  ],
+  // mode: 'production',
+  mode: 'development'
+}
 
 
+而在webpack.config.js内也需要告诉那些不用打包了并引入
+const { resolve } = require('path')
+const HtmlWebpackPlugin = require('html-webpack-plugin')
+const webpack = require('webpack')
+const AddAssetHtmlWebpackPlugin= require('add-asset-html-webpack-plugin')
 
+module.exports = {
+  entry: './src/js/main.js',
+  output: {
+    filename: 'js/[name].[contenthash:10].js',
+    path: resolve(__dirname, 'dist')
+  },
+  plugins: [
+    new HtmlWebpackPlugin({
+      template: './src/index.html',
+      minify: {
+        collapseWhitespace: true,
+        removeComments: true
+      }
+    }),
+    // 告诉webpack哪些库不参与打包，同时使用时的名称也得变
+    new webpack.DllReferencePlugin({
+      manifest: resolve(__dirname, 'dll/manifest.json')
+    }),
+    // 将某个文件打包输出出去，并在html中自动引入改资源 当内容改动时不需要重新运行dll.js 不用重复的进行打包了
+    new AddAssetHtmlWebpackPlugin({
+      filepath: resolve(__dirname, 'dll/jquery.js')
+    })
+  ],
+  mode: 'production',
+  // mode: 'development'
+}
 
+```
 
-
+13 性能优化总结
 
 
 
