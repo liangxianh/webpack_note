@@ -4,7 +4,26 @@
 
 > 开发环境性能优化
 
+* 优化打包构建速度 HMR
+* 优化代码调试 source-map
+
+> 生产环境性能优化
+
 * 优化打包构建速度
+  * oneOf
+  * 缓存（babel缓存）
+  * 多进程打包
+  * externals（cdn引入）
+  * dll （所有库被单独打包成一个文件）
+
+* 优化代码运行性能 
+  * 缓存(hash-chunkhash-contenthash
+  * tree-shaking 
+  * code split
+  * 懒加载和预加载
+  * pwa
+
+
 
 1 HMR（开发环境，而生产环境利用缓存做相对的优化处理）
 ``` 
@@ -37,6 +56,19 @@
 source-map：一种提供源代码与构建代码映射的技术
   基础写法：devtool: 'source-map'
   [inline-|hidden-|eval-][nosources-][cheap-[module-]source-map
+  
+  [inline-|hidden-|eval- 三个里面选择一个
+  [nosources- 要么有要么没有
+  [cheap-[module-] 要么cheap 要么cheap-module
+  这些进行任意组合
+  
+  inline和eval代表内联 其他事外部的，内联是指source-map文件和js打包到一起，外部是map文件独立的
+  生产环境是使用外部的，这样文件不会过大
+  hidden（有构件后的代码）和nosources（完全隐藏） 代表隐藏源代码信息，一般用与生产环境
+  cheap 只记录行（source-map默认是行和列）打包速度更快
+  module loader的source map加入 打包速度会慢一点
+  
+  
   source-map：外部
     错误代码的准确信息和源代码的错误位置， 精确到行和列
   inline-source-map：内联 只生成一个内联的source-map
@@ -49,7 +81,7 @@ source-map：一种提供源代码与构建代码映射的技术
      错误代码的准确信息，无任何源代码信息（全部隐藏）
   cheap-source-map：外部
      错误代码的准确信息和源代码的错误位置，精确到行
-  cheap-module-source-map：外部
+  cheap-module-source-map：外部（最完整）
      错误代码的准确信息和源代码的错误位置，精确到行
       module会将loader的source map加入
   1 外部生成了文件，内联没有
@@ -70,12 +102,6 @@ source-map：一种提供源代码与构建代码映射的技术
          ----> source-map --> cheap-module-source-map
 ```
 
-* 优化代码调试
-
-> 生产环境性能优化
-
-* 优化打包构建速度
-* 优化代码运行性能
 
 3 vue框架在底层完成了2中js文件配置的内容，顾在devServer下hot开启即可；
 
@@ -168,12 +194,14 @@ module: {
 
   > 文件资源缓存
 
-
+    [hash] is a "unique hash generated for every build"
+    [chunkhash] is "based on each chunks' content"
+    [contenthash] is "generated for extracted content"
     * hash：每次webpack构建时会生成一个唯一的hash值
     
         问题：因为js和css同时使用一个hash值，如果重新打包，会导致所有缓存失效（可我却只改动了一个文件）
         
-    * chunkhash：更具chunk生成的hash值；如果打包来源于同一个chunk，那么hash值就一样
+    * chunkhash：根据chunk生成的hash值；如果打包来源于同一个chunk，那么hash值就一样
     
         问题：js和css的hash值还是一样
           因为css是在js中被引入的所以同属于一个chunk
@@ -228,7 +256,7 @@ module: {
 /* 
     tree shaking（树摇）去除无用代码(可能是js/css代码)
     （比如，js定义的常用方法，只引入部分的 ，就只打包部分的）
-    前提： 1 必须使用es6模块化； 2 开启production环境；
+    前提： 1 必须使用es6模块化； 2 开启production环境(内部有个压缩代码会自动去除无用代码)；
     作用：减少代码体积
     
     不同版本会有差异，有的会将css/@babel/polyfill（副作用）文件干掉
@@ -236,6 +264,16 @@ module: {
     "sideEffects": false 所有代码都没有副作用（都可以进行tree shaking）
     问题： 可能会把css/@babel/polyfill（副作用）文件干掉
     "sideEffects": ["*.css"， ] 
+    
+不同的设置[参考文章](https://juejin.cn/post/7002410645316436004)
+在 Webpack 中，启动 Tree Shaking 功能必须同时满足三个条件：
+
+1 使用 ESM 规范编写模块代码
+2 配置 optimization.usedExports 为 true，启动标记功能
+3 启动代码优化功能，可以通过如下方式实现：
+ 配置 mode = production
+ 配置 optimization.minimize = true
+ 提供 optimization.minimizer 数组
 */
 
 ```
@@ -524,8 +562,6 @@ module.exports = {
 }
 
 ```
-
-13 性能优化总结
 
 
 
