@@ -34,6 +34,8 @@ const HtmlWebpackPlugin = require('html-webpack-plugin')
 module.exports = {
   entry: './src/index.js',
   output: {
+    // 将 js 文件输出到 static/js 目录中,只针对入口文件的输出文件名
+    // filename: 'static/js/main.js'
     filename: 'main.js',
     // __dirname nodejs的变量，代表当前文件的目录绝对路径
     path: resolve(__dirname, 'dist')
@@ -78,7 +80,7 @@ module.exports = {
 
 4. 利用webpack打包图片资源
 ```
-      // 处理img资源
+      // 处理img资 源我们处理图片资源通过 file-loader(原封不动的输出) 和 url-loader（file-loader基础上可以base64并打包处理） 进行处理
       {
         // 问题：处理不了html中的img 一定注意此格式 /\.(jpg|jpeg|gif|png)|/ 之前写成了这个样子导致图片没有被加载
         test: /\.(jpg|jpeg|gif|png)$/,
@@ -86,7 +88,7 @@ module.exports = {
         loader: 'url-loader',
         options: {
           /* 
-           图片大小小于8k，就会被base64处理
+           图片大小小于8k，就会被base64处理（一字符串在项目中不需要发送请求，但是体积会变大，所有对小图进行这样的处理比较好）
            优点：减少请求数量（减轻服务器压力）
            缺点：图片体积会更大（文件请求速度更慢）
           */
