@@ -367,6 +367,15 @@ module: {
 
 12. 性能优化介绍
 
+13. 处理其他资源
+
+```
+       {
+         exclude: /\.(css|js|html|less|png|jpe?g|gif|webp)$/,
+         loader: 'file-loader'
+       }
+```
+
 
 
 
